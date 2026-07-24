@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IBM HTTP Server High-Risk CVE Report</title>
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    crossorigin="anonymous">
+
+  <!-- DataTables + Bootstrap 5 整合 -->
+  <link rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
+
+  <style>
+    /* ── 基礎樣式 ── */
+    body {
+      font-size: 14px;
+      background-color: #f8f9fa;
+    }
+    .page-wrapper {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* ── 頁頭 ── */
+    .report-header {
+      background: #1d3557;
+      color: #fff;
+      border-radius: 8px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+    .report-header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 8px 0;
+    }
+    .report-header .subtitle {
+      font-size: 0.875rem;
+      opacity: 0.85;
+    }
+
+    /* ── 統計卡片 ── */
+    .stat-card {
+      border: none;
+      border-radius: 8px;
+    }
+    .stat-card .card-body {
+      padding: 16px 20px;
+    }
+    .stat-card .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    /* ── 表格 ── */
+    .table-wrapper {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    table.dataTable thead th {
+      background-color: #1d3557;
+      color: #fff;
+      font-weight: 500;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      border: none !important;
+    }
+    table.dataTable tbody tr:hover {
+      background-color: #f0f4ff !important;
+    }
+    .table-danger-light {
+      background-color: #fff5f5 !important;
+    }
+    .table-warning-light {
+      background-color: #fffbf0 !important;
+    }
+
+    /* ── Severity Badge ── */
+    .fs-badge {
+      font-size: 0.75rem;
+    }
+
+    /* ── CVSS Badge ── */
+    .cvss-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+    .cvss-critical {
+      background-color: #dc3545;
+      color: #fff;
+    }
+    .cvss-high {
+      background-color: #fd7e14;
+      color: #fff;
+    }
+    .cvss-medium {
+      background-color: #ffc107;
+      color: #212529;
+    }
+    .cvss-na {
+      background-color: #dee2e6;
+      color: #6c757d;
+    }
+
+    /* ── CVE 連結 ── */
+    .cve-link {
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: #1d3557;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .cve-link:hover {
+      text-decoration: underline;
+      color: #e63946;
+    }
+
+    /* ── Bulletin 連結 ── */
+    .bulletin-link {
+      color: #1d3557;
+      font-size: 0.83rem;
+      text-decoration: none;
+      line-height: 1.4;
+    }
+    .bulletin-link:hover {
+      color: #e63946;
+      text-decoration: underline;
+    }
+
+    /* ── iFix 連結 ── */
+    .ifix-link {
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: #0d6efd;
+      text-decoration: none;
+    }
+    .ifix-link:hover {
+      text-decoration: underline;
+    }
+    .ifix-text {
+      font-family: monospace;
+      font-size: 0.82rem;
+      color: #495057;
+    }
+
+    /* ── Version Tag ── */
+    .version-tag {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .lts-tag {
+      background-color: #cfe2ff;
+      color: #084298;
+    }
+    .cd-tag {
+      background-color: #d1e7dd;
+      color: #0a3622;
+    }
+
+    /* ── Date Tag ── */
+    .date-tag {
+      display: inline-block;
+      font-size: 0.8rem;
+      color: #495057;
+    }
+    .lts-date-tag {
+      font-size: 0.8rem;
+      color: #084298;
+    }
+    .cd-date-tag {
+      font-size: 0.8rem;
+      color: #0a3622;
+    }
+
+    /* ── 欄位寬度 ── */
+    .bulletin-col { min-width: 200px; max-width: 320px; }
+    .ver-col { min-width: 160px; max-width: 260px; font-size: 0.8rem; }
+    .cve-col { min-width: 130px; }
+    .fix-col { min-width: 120px; }
+
+    /* ── Footer ── */
+    .report-footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #6c757d;
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #dee2e6;
+    }
+
+    /* ── RWD ── */
+    @media (max-width: 768px) {
+      .report-header h1 { font-size: 1.2rem; }
+      .stat-card .stat-number { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="page-wrapper">
+
+  <!-- 頁頭 -->
+  <div class="report-header">
+    <h1>🔒 IBM HTTP Server — High-Risk CVE Report</h1>
+    <div class="subtitle">
+      資料來源：IBM Security Bulletins &nbsp;|&nbsp;
+      查詢範圍：最近 <strong>90</strong> 天 &nbsp;|&nbsp;
+      CVSS 門檻：<strong>≥ 7.5</strong> &nbsp;|&nbsp;
+      報表生成時間：<strong>2026-07-24 23:09:38</strong>
+    </div>
+  </div>
+
+  <!-- 統計卡片 -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card stat-card bg-primary text-white">
+        <div class="card-body">
+          <div class="stat-number">11</div>
+          <div class="stat-label">Total Bulletins</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card bg-danger text-white">
+        <div class="card-body">
+          <div class="stat-number">4</div>
+          <div class="stat-label">Critical</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card text-white" style="background-color:#fd7e14;">
+        <div class="card-body">
+          <div class="stat-number">7</div>
+          <div class="stat-label">High</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card stat-card bg-dark text-white">
+        <div class="card-body">
+          <div class="stat-number">90</div>
+          <div class="stat-label">Days Range</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 報表表格 -->
+  <div class="table-wrapper">
+    <div class="table-responsive">
+      <table id="cveTable" class="table table-bordered table-sm align-middle w-100">
+        <thead>
+          <tr>
+            <th>Security Bulletin</th>
+            <th class="text-center">Affected IHS Version</th>
+            <th class="text-center">CVE-ID</th>
+            <th class="text-center">Severity</th>
+            <th class="text-center">Publish Date</th>
+            <th class="text-center">CVSS Base Score</th>
+            <th class="text-center">iFix</th>
+            <th class="text-center">Fixpack Version</th>
+            <th class="text-center">Fixpack Release Date</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr class="table-danger-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7276565" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities due to the included Apache HTTP Server</a></td>
+          <td class="ver-col">9.0<br>8.5</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-29167" target="_blank" rel="noopener" class="cve-link">CVE-2026-29167</a></td>
+          <td class="text-center"><span class="badge rounded-pill bg-danger px-3 py-2 fs-badge">Critical</span></td>
+          <td class="text-nowrap">2026-06-16</td>
+          <td class="text-center"><span class="cvss-badge cvss-critical">9.8</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71594</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71594</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-danger-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7276565" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities due to the included Apache HTTP Server</a></td>
+          <td class="ver-col">9.0<br>8.5</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-44631" target="_blank" rel="noopener" class="cve-link">CVE-2026-44631</a></td>
+          <td class="text-center"><span class="badge rounded-pill bg-danger px-3 py-2 fs-badge">Critical</span></td>
+          <td class="text-nowrap">2026-06-16</td>
+          <td class="text-center"><span class="cvss-badge cvss-critical">9.8</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71594</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71594</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-danger-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-9170" target="_blank" rel="noopener" class="cve-link">CVE-2026-9170</a></td>
+          <td class="text-center"><span class="badge rounded-pill bg-danger px-3 py-2 fs-badge">Critical</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-critical">9.8</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-danger-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7276565" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities due to the included Apache HTTP Server</a></td>
+          <td class="ver-col">9.0<br>8.5</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-42535" target="_blank" rel="noopener" class="cve-link">CVE-2026-42535</a></td>
+          <td class="text-center"><span class="badge rounded-pill bg-danger px-3 py-2 fs-badge">Critical</span></td>
+          <td class="text-nowrap">2026-06-16</td>
+          <td class="text-center"><span class="cvss-badge cvss-critical">9.1</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71594</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71594</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-8855" target="_blank" rel="noopener" class="cve-link">CVE-2026-8855</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">8.1</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-8834" target="_blank" rel="noopener" class="cve-link">CVE-2026-8834</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">8.0</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-8856" target="_blank" rel="noopener" class="cve-link">CVE-2026-8856</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">7.7</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7276565" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities due to the included Apache HTTP Server</a></td>
+          <td class="ver-col">9.0<br>8.5</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-34356" target="_blank" rel="noopener" class="cve-link">CVE-2026-34356</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-06-16</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">7.5</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71594</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71594</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-8850" target="_blank" rel="noopener" class="cve-link">CVE-2026-8850</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">7.5</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-45186" target="_blank" rel="noopener" class="cve-link">CVE-2026-45186</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">7.5</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        <tr class="table-warning-light">
+          <td class="bulletin-col"><a href="https://www.ibm.com/support/pages/node/7274065" target="_blank" rel="noopener" class="bulletin-link">IBM HTTP Server is affected by multiple vulnerabilities</a></td>
+          <td class="ver-col">8.5<br>9.0</td>
+          <td class="cve-col"><a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-8854" target="_blank" rel="noopener" class="cve-link">CVE-2026-8854</a></td>
+          <td class="text-center"><span class="badge rounded-pill px-3 py-2 fs-badge" style="background-color:#fd7e14;">High</span></td>
+          <td class="text-nowrap">2026-05-26</td>
+          <td class="text-center"><span class="cvss-badge cvss-high">7.5</span></td>
+          <td class="fix-col"><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V9: PH71265</a><br><a href="https://www.ibm.com/support/pages/node/7239806" target="_blank" rel="noopener" class="ifix-link">V8.5: PH71265</a></td>
+          <td class="fix-col"><span class="version-tag lts-tag">V9: 9.0.5.29</span><br><span class="version-tag cd-tag">V8.5: 8.5.5.30</span></td>
+          <td class="text-center"><span class="date-tag lts-date-tag">V9: 3Q2026</span><br><span class="date-tag cd-date-tag">V8.5: 3Q2026</span></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="report-footer">
+    Generated by IBM HTTP Server CVE Scraper &nbsp;|&nbsp; 2026-07-24 23:09:38
+  </div>
+
+</div><!-- /page-wrapper -->
+
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+  crossorigin="anonymous"></script>
+<!-- DataTables -->
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+  $(document).ready(function () {
+    $('#cveTable').DataTable({
+      pageLength: 25,
+      lengthMenu: [10, 25, 50, 100],
+      order: [[5, 'desc']],  // 預設依 CVSS Score 降冪排序
+      language: {
+        search: '搜尋：',
+        lengthMenu: '每頁顯示 _MENU_ 筆',
+        info: '顯示第 _START_ 至 _END_ 筆，共 _TOTAL_ 筆',
+        infoEmpty: '沒有資料',
+        zeroRecords: '找不到符合條件的記錄',
+        paginate: {
+          first: '第一頁',
+          last: '最末頁',
+          next: '下一頁',
+          previous: '上一頁'
+        }
+      },
+      columnDefs: [
+        { orderable: false, targets: [0, 2, 6, 7, 8] },  // 不可排序的欄位
+        { className: 'text-center', targets: [1, 2, 3, 4, 5, 6, 7, 8] }
+      ],
+      responsive: true
+    });
+  });
+</script>
+
+</body>
+</html>
